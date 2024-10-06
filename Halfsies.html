@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halfsies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2a2a2a;
+            --background-color: #f5f3e8;
+            --text-color: #2a2a2a;
+            --border-color: #2a2a2a;
+        }
+        body {
+            font-family: 'Pixelify Sans', cursive;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white;
+            border: 4px solid var(--border-color);
+            padding: 20px;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 0.2em;
+            text-transform: uppercase;
+        }
+        .subcopy {
+            text-align: center;
+            font-size: 1em;
+            margin-bottom: 1.5em;
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 1em;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 2px solid var(--border-color);
+            box-sizing: border-box;
+            font-size: 16px;
+            font-family: 'Pixelify Sans', cursive;
+            background-color: white;
+        }
+        button {
+            background-color: transparent;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        button:hover, button:active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #peopleList, #results {
+            margin-top: 20px;
+            border-top: 2px dashed var(--border-color);
+            padding-top: 15px;
+        }
+        #peopleList div, #results div {
+            padding: 8px 0;
+            border-bottom: 1px dotted var(--border-color);
+            display: flex;
+            justify-content: space-between;
+        }
+        #peopleList div:last-child, #results div:last-child {
+            border-bottom: none;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2em;
+            font-size: 0.8em;
+            border-top: 2px dashed var(--border-color);
+            padding-top: 1em;
+        }
+        .bold {
+            font-weight: 700;
+        }
+        .right-align {
+            text-align: right;
+        }
+        @media (min-width: 600px) {
+            body {
+                font-size: 18px;
+            }
+            .container {
+                max-width: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Halfsies</h1>
+        <div class="subcopy">Figure out who owes who how much</div>
+        <input type="text" id="personName" placeholder="Name">
+        <input type="number" id="personExpense" placeholder="Expense (AED)">
+        <button onclick="addPerson()">Add Person</button>
+        <div id="peopleList"></div>
+        <button onclick="calculateBalances()">Calculate Balances</button>
+        <div id="results"></div>
+        <div class="footer">© thatowais // 2024</div>
+    </div>
+
+    <script>
+        let people = [];
+
+        function addPerson() {
+            const name = document.getElementById('personName').value;
+            const expense = parseFloat(document.getElementById('personExpense').value);
+            if (name && !isNaN(expense)) {
+                people.push({ name, expense });
+                updatePeopleList();
+                document.getElementById('personName').value = '';
+                document.getElementById('personExpense').value = '';
+            }
+        }
+
+        function updatePeopleList() {
+            const list = document.getElementById('peopleList');
+            list.innerHTML = people.map(p => `<div><span>${p.name}</span><span class="right-align">AED ${p.expense.toFixed(2)}</span></div>`).join('');
+        }
+
+        function calculateBalances() {
+            const totalExpense = people.reduce((sum, p) => sum + p.expense, 0);
+            const averageExpense = totalExpense / people.length;
+            const balances = people.map(p => ({
+                name: p.name,
+                balance: p.expense - averageExpense
+            }));
+
+            const transactions = [];
+            const debtors = balances.filter(b => b.balance < 0).sort((a, b) => a.balance - b.balance);
+            const creditors = balances.filter(b => b.balance > 0).sort((a, b) => b.balance - a.balance);
+
+            while (debtors.length > 0 && creditors.length > 0) {
+                const debtor = debtors[0];
+                const creditor = creditors[0];
+                const amount = Math.min(-debtor.balance, creditor.balance);
+                
+                transactions.push(`<div><span>${debtor.name} pays ${creditor.name}</span><span class="bold right-align">AED ${amount.toFixed(2)}</span></div>`);
+                
+                debtor.balance += amount;
+                creditor.balance -= amount;
+                
+                if (Math.abs(debtor.balance) < 0.01) debtors.shift();
+                if (Math.abs(creditor.balance) < 0.01) creditors.shift();
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <h2>Results</h2>
+                <div><span>Total Expense:</span><span class="bold right-align">AED ${totalExpense.toFixed(2)}</span></div>
+                <div><span>Average per Person:</span><span class="bold right-align">AED ${averageExpense.toFixed(2)}</span></div>
+                <h3>Transactions:</h3>
+                ${transactions.join('')}
+            `;
+        }
+    </script>
+</body>
+</html>
